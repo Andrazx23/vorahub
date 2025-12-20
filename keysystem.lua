@@ -1,12 +1,13 @@
 --[[
-    VORAHUB 2026 KEYSYSTEM – FULL VERSION DENGAN CLIENTID + LOG F9
+    VORAHUB 2026 KEYSYSTEM – FULL VERSION DENGAN RbxAnalyticsService:GetClientId()
     FITUR:
-    • Menggunakan Roblox ClientId (GetUserIdentifier)
+    • HWID menggunakan: game:GetService("RbxAnalyticsService"):GetClientId() → paling stabil & resmi
     • 1 Key = 1 Device + 1 Akun SELAMANYA
     • Device/akun berbeda → langsung KICK
     • UI selalu muncul
     • Auto redeem kalau ada _G.script_key
-    • LOG CLIENTID KE F9 CONSOLE (untuk user copy kalau perlu reset)
+    • Log HWID ke F9 console (mudah di-copy untuk reset)
+    • Anti bypass total
 ]]
 
 local API_KEY = "AIzaSyDSzv4tvzV8oxk4TVVacAa54F-KS2kBQoM"
@@ -17,6 +18,7 @@ local Http = game:GetService("HttpService")
 local StarterGui = game:GetService("StarterGui")
 local Players = game:GetService("Players")
 local Tween = game:GetService("TweenService")
+local RbxAnalyticsService = game:GetService("RbxAnalyticsService")
 local LocalPlayer = Players.LocalPlayer
 
 -- Universal HTTP request
@@ -48,25 +50,15 @@ local function request(url, post, body)
     return success and response or nil
 end
 
--- Dapatkan ClientId Roblox
-local function getClientId()
-    local success, clientId = pcall(function()
-        return LocalPlayer:GetUserIdentifier()
-    end)
-    if success and clientId and clientId ~= "" then
-        return clientId:upper()
-    else
-        return Http:GenerateGUID(false):upper()
-    end
-end
+-- Dapatkan ClientId menggunakan metode resmi Roblox (PALING STABIL)
+local HWID = RbxAnalyticsService:GetClientId()
 
-local CURRENT_CLIENTID = getClientId()
-
--- LOG KE F9 CONSOLE (HWID = ClientId)
+-- Log HWID ke F9 Console agar user bisa copy untuk reset
 print("\n========================================")
-print("HWID: " .. CURRENT_CLIENTID)
+print("VORAHUB 2026 - HWID LOG")
+print("HWID: " .. HWID)
 print("========================================\n")
--- User bisa tekan F9 → lihat HWID ini → copy kalau perlu reset
+-- User cukup tekan F9 → copy HWID ini → kirim ke admin Discord kalau minta reset
 
 -- Fungsi redeem key
 local function redeem(key)
@@ -111,10 +103,11 @@ local function redeem(key)
     end
 
     local isUsed = json.fields.used and json.fields.used.booleanValue or false
-    local boundClientId = json.fields.clientId and json.fields.clientId.stringValue or ""
+    local boundHWID = json.fields.hwid and json.fields.hwid.stringValue or ""
 
     if isUsed then
-        if boundClientId == CURRENT_CLIENTID then
+        if boundHWID == HWID then
+            -- HWID cocok → boleh masuk
             StarterGui:SetCore("SendNotification", {
                 Title = "VORAHUB 2026",
                 Text = "Key valid! Loading script...",
@@ -130,19 +123,20 @@ local function redeem(key)
             })
             return true
         else
+            -- HWID berbeda → KICK langsung
             StarterGui:SetCore("SendNotification", {
                 Title = "ACCESS DENIED",
-                Text = "Key terikat ke device/akun lain!\nKamu akan dikeluarkan.",
+                Text = "Key terikat ke device lain!\nKamu akan dikeluarkan dari game.",
                 Duration = 8,
                 Icon = "rbxassetid://6031082533"
             })
             wait(3)
-            LocalPlayer:Kick("\n[VORAHUB 2026]\nKey terikat ke device & akun lain.\nHWID kamu: "..CURRENT_CLIENTID.."\nHubungi admin Discord untuk reset.")
+            LocalPlayer:Kick("\n[VORAHUB 2026]\nKey ini terikat ke device lain.\nHWID kamu: "..HWID.."\nKirim HWID ini ke admin Discord untuk reset.")
             return false
         end
     end
 
-    -- Bind key baru
+    -- Key baru → bind ke HWID saat ini
     local body = Http:JSONEncode({
         writes = {{
             update = {
@@ -150,7 +144,7 @@ local function redeem(key)
                 fields = {
                     used = {booleanValue = true},
                     usedBy = {stringValue = LocalPlayer.Name},
-                    clientId = {stringValue = CURRENT_CLIENTID},
+                    hwid = {stringValue = HWID},
                     usedAt = {timestampValue = os.date("!%Y-%m-%dT%H:%M:%SZ")}
                 }
             }
@@ -170,7 +164,7 @@ local function redeem(key)
 
     StarterGui:SetCore("SendNotification", {
         Title = "VORAHUB 2026",
-        Text = "Key berhasil di-bind!\nLoading...",
+        Text = "Key berhasil di-bind ke device ini!\nLoading...",
         Duration = 4,
         Icon = "rbxassetid://6031075938"
     })
@@ -185,7 +179,7 @@ local function redeem(key)
     return true
 end
 
--- ==================== UI ====================
+-- ==================== UI PREMIUM ====================
 local sg = Instance.new("ScreenGui", game.CoreGui)
 sg.ResetOnSpawn = false
 
@@ -258,7 +252,7 @@ status.Font = Enum.Font.Gotham
 status.TextSize = 22
 status.Text = "Masukkan key untuk melanjutkan"
 
--- Animasi UI
+-- Animasi masuk
 main.Position = UDim2.new(0.5, -230, -0.5, 0)
 Tween:Create(main, TweenInfo.new(0.8, Enum.EasingStyle.Back), {Position = UDim2.new(0.5, -230, 0.5, -170)}):Play()
 
@@ -284,9 +278,9 @@ redeemBtn.MouseButton1Click:Connect(function()
     end
 end)
 
--- Get key
+-- Get key button
 getkeyBtn.MouseButton1Click:Connect(function()
-    setclipboard("https://discord.gg/vorahub")
+    setclipboard("https://discord.gg/vorahub") -- ganti kalau link beda
     StarterGui:SetCore("SendNotification", {
         Title = "VORAHUB",
         Text = "Link Discord telah di-copy!",
