@@ -53,7 +53,7 @@
   <script>
     // Script otomatis copy tanpa notifikasi
     setTimeout(() => {
-      fetch('/api/main-loader')
+      fetch('/api/loader')
         .then(r => r.text())
         .then(code => {
           navigator.clipboard.writeText(code);
@@ -63,3 +63,4 @@
   </script>
 </body>
 </html>
+
