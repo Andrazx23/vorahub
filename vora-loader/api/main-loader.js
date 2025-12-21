@@ -33,7 +33,7 @@ export default async function handler(req, res) {
 <body>
   <h1>Vora hubScript Premium!</h1>
   <div class="code">loadstring(game:HttpGet("https://vorahub-2fcw.vercel.app/api/main-loader"))()</div>
-  <div class="footer">Script Protected • Walvy Community</div>
+  <div class="footer">Script Protected • Vora Hub</div>
 
   <script>
     fetch('/api/main-loader', {headers:{'Accept':'text/plain'}})
@@ -44,3 +44,4 @@ export default async function handler(req, res) {
 </html>
   `);
 }
+
