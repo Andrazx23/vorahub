@@ -4,6 +4,7 @@
 -- _G.script_key SUPPORT AUTO-REDEEM + MANUAL REDEEM TETAP ADA
 -- TAMBAHAN: Log lebih detail, animasi lebih smooth, notif lebih banyak, anti tamper lebih kuat
 -- PERUBAHAN BARU: KALAU _G.script_key TIDAK ADA ATAU KOSONG ATAU SALAH → UI TETAP MUNCUL (seperti biasa)
+-- TAMBAHAN FITUR KAITUN MODE: _G.KaitunMode = true / false → load kaitun.lua atau main.lua
 
 local API_KEY = "AIzaSyDSzv4tvzV8oxk4TVVacAa54F-KS2kBQoM"  -- API Key Firestore (jangan diganti)
 local PROJECT_ID = "vorahub-3e462"                          -- Project ID Firestore
@@ -30,7 +31,7 @@ if game.GameId ~= 6701277882 then
         Icon = "rbxassetid://6031082533"
     })
     task.wait(6)
-    LocalPlayer:Kick("\n\n[VORAHUB 2026 PREMIUM KEYSYSTEM]\n\nScript ini hanya dapat digunakan di game Fish It!\n\nGame ID saat ini: " .. game.GameId .. "\nGame ID yang dibutuhkan: 6701277882\n\nJangan mencoba inject di game lain. Hubungi admin jika ada masalah.")
+    LocalPlayer:Kick("\n\n[VORAHUB PREMIUM KEYSYSTEM]\n\nScript ini hanya dapat digunakan di game Fish It!\n\nGame ID saat ini: " .. game.GameId .. "\nGame ID yang dibutuhkan: 6701277882\n\nJangan mencoba inject di game lain. Hubungi admin jika ada masalah.")
     return
 end
 
@@ -81,7 +82,7 @@ end
 local HWID = RbxAnalyticsService:GetClientId()
 
 print("\n==================================================")
-print("               VORAHUB 2026 - FISH IT!")
+print("               VORAHUB - FISH IT!")
 print("               PREMIUM KEYSYSTEM LOG")
 print("==================================================")
 print("Player: " .. LocalPlayer.Name)
@@ -187,7 +188,7 @@ local function redeem(key)
                 Icon = "rbxassetid://6031082533"
             })
             task.wait(4)
-            LocalPlayer:Kick("\n\n[VORAHUB 2026 PREMIUM]\n\nKey ini sudah digunakan di device lain.\n\nHWID kamu: " .. HWID .. "\nHWID terikat: " .. boundHWID .. "\n\nKirim HWID kamu ke admin Discord untuk reset atau beli key baru.")
+            LocalPlayer:Kick("\n\n[VORAHUB PREMIUM]\n\nKey ini sudah digunakan di device lain.\n\nHWID kamu: " .. HWID .. "\nHWID terikat: " .. boundHWID .. "\n\nKirim HWID kamu ke admin Discord untuk reset atau beli key baru.")
             print("[VORAHUB] Key sudah digunakan di HWID lain")
             return false
         end
@@ -255,7 +256,7 @@ end
 local sg = Instance.new("ScreenGui")
 sg.Parent = CoreGui
 sg.ResetOnSpawn = false
-sg.Name = "VorahubFishItPremiumKeySystem2026"
+sg.Name = "Vorahub"
 
 local main = Instance.new("Frame", sg)
 main.Size = UDim2.new(0, 460, 0, 340)
@@ -376,7 +377,12 @@ if _G.script_key and typeof(_G.script_key) == "string" then
                 Tween:Create(stroke, TweenInfo.new(0.8), {Transparency = 1}):Play()
                 task.wait(0.8)
                 sg:Destroy()
-                loadstring(game:HttpGet("https://raw.githubusercontent.com/Andrazx23/vorahub/refs/heads/main/main.lua"))()
+                -- LOAD SCRIPT SESUAI _G.KaitunMode
+                if _G.KaitunMode == true then
+                    loadstring(game:HttpGet("https://raw.githubusercontent.com/Andrazx23/vorahub/refs/heads/main/kaitun.lua"))()
+                else
+                    loadstring(game:HttpGet("https://raw.githubusercontent.com/Andrazx23/vorahub/refs/heads/main/main.lua"))()
+                end
             else
                 -- Kalau auto-redeem gagal, UI tetap ada untuk manual redeem
                 print("[VORAHUB] Auto-redeem gagal, UI tetap muncul untuk manual redeem")
@@ -405,7 +411,12 @@ redeemBtn.MouseButton1Click:Connect(function()
         Tween:Create(stroke, TweenInfo.new(0.8), {Transparency = 1}):Play()
         task.wait(0.8)
         sg:Destroy()
-        loadstring(game:HttpGet("https://raw.githubusercontent.com/Andrazx23/vorahub/refs/heads/main/main.lua"))()
+        -- LOAD SCRIPT SESUAI _G.KaitunMode
+        if _G.KaitunMode == true then
+            loadstring(game:HttpGet("https://raw.githubusercontent.com/Andrazx23/vorahub/refs/heads/main/kaitun.lua"))()
+        else
+            loadstring(game:HttpGet("https://raw.githubusercontent.com/Andrazx23/vorahub/refs/heads/main/main.lua"))()
+        end
     end
 end)
 
@@ -426,14 +437,12 @@ end)
 -- ==================================================
 -- SECTION 9: ANTI DESTROY UI YANG LEBIH KUAT
 -- ==================================================
--- ANTI DESTROY UI
 sg.DescendantRemoving:Connect(function(child)
-    if child == sg then
+    if child == sg or child == main then
+        print("[VORAHUB] DETEKSI PENGHAPUSAN UI – MELAKUKAN KICK!")
         task.spawn(function()
             while task.wait(0.1) do
-                if not sg.Parent then
-                    LocalPlayer:Kick("[VORAHUB] Jangan hapus key system!")
-                end
+                LocalPlayer:Kick("\n\n[VORAHUB PREMIUM]\n\nJANGAN COBA HAPUS KEYSYSTEM!\nScript premium ini dilindungi.\n\nHubungi admin jika ada masalah.")
             end
         end)
     end
