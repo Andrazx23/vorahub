@@ -434,19 +434,7 @@ getkeyBtn.MouseButton1Click:Connect(function()
     print("[VORAHUB] User mengklik GET KEY – link Discord di-copy")
 end)
 
--- ==================================================
--- SECTION 9: ANTI DESTROY UI YANG LEBIH KUAT
--- ==================================================
-sg.DescendantRemoving:Connect(function(child)
-    if child == sg or child == main then
-        print("[VORAHUB] DETEKSI PENGHAPUSAN UI – MELAKUKAN KICK!")
-        task.spawn(function()
-            while task.wait(0.1) do
-                LocalPlayer:Kick("\n\n[VORAHUB PREMIUM]\n\nJANGAN COBA HAPUS KEYSYSTEM!\nScript premium ini dilindungi.\n\nHubungi admin jika ada masalah.")
-            end
-        end)
-    end
-end)
+
 
 -- Anti close CoreGui
 CoreGui.DescendantRemoving:Connect(function(child)
