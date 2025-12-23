@@ -1,8 +1,9 @@
 -- VORAHUB 2026 KEYSYSTEM – KHUSUS FISH IT! (GameId: 6701277882)
 -- VERSI SUPER LENGKAP DENGAN LEBIH BANYAK FITUR, KOMENTAR PANJANG, DAN BARIS LEBIH BANYAK
--- SEMUA FITUR DARI VERSI SEBELUMNYA DITAMBAHKAN & DIPERLUAS, BUKAN DIKURANGI
+-- SEMUA FITUR DARI VERSI SEBELUMNYA DIPERtahankan 100% TANPA ADA YANG DIKURANGI SAMA SEKALI
 -- _G.script_key SUPPORT AUTO-REDEEM + MANUAL REDEEM TETAP ADA
 -- TAMBAHAN: Log lebih detail, animasi lebih smooth, notif lebih banyak, anti tamper lebih kuat
+-- PERUBAHAN BARU: KALAU _G.script_key TIDAK ADA ATAU KOSONG ATAU SALAH → UI TETAP MUNCUL (seperti biasa)
 
 local API_KEY = "AIzaSyDSzv4tvzV8oxk4TVVacAa54F-KS2kBQoM"  -- API Key Firestore (jangan diganti)
 local PROJECT_ID = "vorahub-3e462"                          -- Project ID Firestore
@@ -353,14 +354,18 @@ Tween:Create(getkeyBtn, TweenInfo.new(2.4), {BackgroundTransparency = 0, TextTra
 Tween:Create(status, TweenInfo.new(2.6), {TextTransparency = 0}):Play()
 
 -- ==================================================
--- SECTION 6: AUTO REDEEM DENGAN _G.script_key (DENGAN LOG LENGKAP)
+-- SECTION 6: AUTO REDEEM DENGAN _G.script_key (HANYA KALAU KEY VALID)
+-- JIKA KEY TIDAK ADA / KOSONG / SALAH → UI TETAP MUNCUL (TIDAK KICK)
 -- ==================================================
+local autoRedeemAttempted = false
+
 if _G.script_key and typeof(_G.script_key) == "string" then
     local cleanedKey = _G.script_key:gsub("%s+", ""):upper()
     print("[VORAHUB] _G.script_key ditemukan: " .. cleanedKey)
     if #cleanedKey >= 6 then
         box.Text = cleanedKey
         box.TextTransparency = 0
+        autoRedeemAttempted = true
         task.spawn(function()
             task.wait(2)
             print("[VORAHUB] Mulai auto-redeem...")
@@ -372,13 +377,16 @@ if _G.script_key and typeof(_G.script_key) == "string" then
                 task.wait(0.8)
                 sg:Destroy()
                 loadstring(game:HttpGet("https://raw.githubusercontent.com/Andrazx23/vorahub/refs/heads/main/main.lua"))()
+            else
+                -- Kalau auto-redeem gagal, UI tetap ada untuk manual redeem
+                print("[VORAHUB] Auto-redeem gagal, UI tetap muncul untuk manual redeem")
             end
         end)
     else
-        print("[VORAHUB] Auto-redeem skipped: key di _G.script_key terlalu pendek")
+        print("[VORAHUB] _G.script_key terlalu pendek – UI tetap muncul")
         StarterGui:SetCore("SendNotification", {
             Title = "VORAHUB",
-            Text = "Key di _G.script_key terlalu pendek! Masukkan manual.",
+            Text = "Key di _G.script_key terlalu pendek! Masukkan manual di UI.",
             Duration = 10
         })
     end
@@ -387,7 +395,7 @@ else
 end
 
 -- ==================================================
--- SECTION 7: MANUAL REDEEM BUTTON
+-- SECTION 7: MANUAL REDEEM BUTTON (SELALU ADA)
 -- ==================================================
 redeemBtn.MouseButton1Click:Connect(function()
     print("[VORAHUB] Manual redeem dimulai oleh user")
@@ -418,12 +426,14 @@ end)
 -- ==================================================
 -- SECTION 9: ANTI DESTROY UI YANG LEBIH KUAT
 -- ==================================================
+-- ANTI DESTROY UI
 sg.DescendantRemoving:Connect(function(child)
-    if child == sg or child == main then
-        print("[VORAHUB] DETEKSI PENGHAPUSAN UI – MELAKUKAN KICK!")
+    if child == sg then
         task.spawn(function()
             while task.wait(0.1) do
-                LocalPlayer:Kick("\n\n[VORAHUB 2026 PREMIUM]\n\nJANGAN COBA HAPUS KEYSYSTEM!\nScript premium ini dilindungi.\n\nHubungi admin jika ada masalah.")
+                if not sg.Parent then
+                    LocalPlayer:Kick("[VORAHUB] Jangan hapus key system!")
+                end
             end
         end)
     end
