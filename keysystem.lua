@@ -5,6 +5,7 @@
 -- TAMBAHAN: Log lebih detail, animasi lebih smooth, notif lebih banyak, anti tamper lebih kuat
 -- PERUBAHAN BARU: KALAU _G.script_key TIDAK ADA ATAU KOSONG ATAU SALAH → UI TETAP MUNCUL (seperti biasa)
 -- TAMBAHAN FITUR KAITUN MODE: _G.KaitunMode = true / false → load kaitun.lua atau main.lua
+-- FIX ANTI DESTROY: sg:Destroy() resmi setelah redeem TIDAK trigger kick lagi
 
 local API_KEY = "AIzaSyDSzv4tvzV8oxk4TVVacAa54F-KS2kBQoM"  -- API Key Firestore (jangan diganti)
 local PROJECT_ID = "vorahub-3e462"                          -- Project ID Firestore
@@ -31,7 +32,7 @@ if game.GameId ~= 6701277882 then
         Icon = "rbxassetid://6031082533"
     })
     task.wait(6)
-    LocalPlayer:Kick("\n\n[VORAHUB PREMIUM KEYSYSTEM]\n\nScript ini hanya dapat digunakan di game Fish It!\n\nGame ID saat ini: " .. game.GameId .. "\nGame ID yang dibutuhkan: 6701277882\n\nJangan mencoba inject di game lain. Hubungi admin jika ada masalah.")
+    LocalPlayer:Kick("\n\n[VORAHUB 2026 PREMIUM KEYSYSTEM]\n\nScript ini hanya dapat digunakan di game Fish It!\n\nGame ID saat ini: " .. game.GameId .. "\nGame ID yang dibutuhkan: 6701277882\n\nJangan mencoba inject di game lain. Hubungi admin jika ada masalah.")
     return
 end
 
@@ -82,7 +83,7 @@ end
 local HWID = RbxAnalyticsService:GetClientId()
 
 print("\n==================================================")
-print("               VORAHUB - FISH IT!")
+print("               VORAHUB 2026 - FISH IT!")
 print("               PREMIUM KEYSYSTEM LOG")
 print("==================================================")
 print("Player: " .. LocalPlayer.Name)
@@ -188,7 +189,7 @@ local function redeem(key)
                 Icon = "rbxassetid://6031082533"
             })
             task.wait(4)
-            LocalPlayer:Kick("\n\n[VORAHUB PREMIUM]\n\nKey ini sudah digunakan di device lain.\n\nHWID kamu: " .. HWID .. "\nHWID terikat: " .. boundHWID .. "\n\nKirim HWID kamu ke admin Discord untuk reset atau beli key baru.")
+            LocalPlayer:Kick("\n\n[VORAHUB 2026 PREMIUM]\n\nKey ini sudah digunakan di device lain.\n\nHWID kamu: " .. HWID .. "\nHWID terikat: " .. boundHWID .. "\n\nKirim HWID kamu ke admin Discord untuk reset atau beli key baru.")
             print("[VORAHUB] Key sudah digunakan di HWID lain")
             return false
         end
@@ -256,7 +257,7 @@ end
 local sg = Instance.new("ScreenGui")
 sg.Parent = CoreGui
 sg.ResetOnSpawn = false
-sg.Name = "Vorahub"
+sg.Name = "VorahubFishItPremiumKeySystem2026"
 
 local main = Instance.new("Frame", sg)
 main.Size = UDim2.new(0, 460, 0, 340)
@@ -358,7 +359,7 @@ Tween:Create(status, TweenInfo.new(2.6), {TextTransparency = 0}):Play()
 -- SECTION 6: AUTO REDEEM DENGAN _G.script_key (HANYA KALAU KEY VALID)
 -- JIKA KEY TIDAK ADA / KOSONG / SALAH → UI TETAP MUNCUL (TIDAK KICK)
 -- ==================================================
-local autoRedeemAttempted = false
+local isLegitDestroy = false  -- Flag untuk membedakan destroy resmi vs hapus manual
 
 if _G.script_key and typeof(_G.script_key) == "string" then
     local cleanedKey = _G.script_key:gsub("%s+", ""):upper()
@@ -366,7 +367,6 @@ if _G.script_key and typeof(_G.script_key) == "string" then
     if #cleanedKey >= 6 then
         box.Text = cleanedKey
         box.TextTransparency = 0
-        autoRedeemAttempted = true
         task.spawn(function()
             task.wait(2)
             print("[VORAHUB] Mulai auto-redeem...")
@@ -376,6 +376,7 @@ if _G.script_key and typeof(_G.script_key) == "string" then
                 Tween:Create(main, TweenInfo.new(0.8), {BackgroundTransparency = 1}):Play()
                 Tween:Create(stroke, TweenInfo.new(0.8), {Transparency = 1}):Play()
                 task.wait(0.8)
+                isLegitDestroy = true  -- Tandai bahwa ini destroy resmi
                 sg:Destroy()
                 -- LOAD SCRIPT SESUAI _G.KaitunMode
                 if _G.KaitunMode == true then
@@ -384,7 +385,7 @@ if _G.script_key and typeof(_G.script_key) == "string" then
                     loadstring(game:HttpGet("https://raw.githubusercontent.com/Andrazx23/vorahub/refs/heads/main/main.lua"))()
                 end
             else
-                -- Kalau auto-redeem gagal, UI tetap ada untuk manual redeem
+                -- Kalau auto-redeem gagal, UI tetap ada
                 print("[VORAHUB] Auto-redeem gagal, UI tetap muncul untuk manual redeem")
             end
         end)
@@ -410,6 +411,7 @@ redeemBtn.MouseButton1Click:Connect(function()
         Tween:Create(main, TweenInfo.new(0.8), {BackgroundTransparency = 1}):Play()
         Tween:Create(stroke, TweenInfo.new(0.8), {Transparency = 1}):Play()
         task.wait(0.8)
+        isLegitDestroy = true  -- Tandai destroy resmi
         sg:Destroy()
         -- LOAD SCRIPT SESUAI _G.KaitunMode
         if _G.KaitunMode == true then
@@ -434,11 +436,28 @@ getkeyBtn.MouseButton1Click:Connect(function()
     print("[VORAHUB] User mengklik GET KEY – link Discord di-copy")
 end)
 
+-- ==================================================
+-- SECTION 9: ANTI DESTROY UI YANG CERDAS & TIDAK TERLALU KUAT
+-- Hanya kick kalau destroy BUKAN dari script resmi (isLegitDestroy = false)
+-- ==================================================
+sg.DescendantRemoving:Connect(function(child)
+    if child == sg or child == main then
+        if not isLegitDestroy then
+            print("[VORAHUB] DETEKSI PENGHAPUSAN UI ILEGAL – KICK PLAYER!")
+            task.spawn(function()
+                while task.wait(0.1) do
+                    LocalPlayer:Kick("\n\n[VORAHUB 2026 PREMIUM]\n\nJANGAN COBA HAPUS KEYSYSTEM!\nScript premium ini dilindungi.\n\nHubungi admin jika ada masalah.")
+                end
+            end)
+        else
+            print("[VORAHUB] UI di-destroy secara resmi setelah redeem sukses – aman")
+        end
+    end
+end)
 
-
--- Anti close CoreGui
+-- Anti close CoreGui tambahan (hanya kalau bukan destroy resmi)
 CoreGui.DescendantRemoving:Connect(function(child)
-    if child.Name == sg.Name then
+    if child.Name == sg.Name and not isLegitDestroy then
         LocalPlayer:Kick("[VORAHUB] Keysytem protected – jangan hapus!")
     end
 end)
