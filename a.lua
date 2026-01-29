@@ -3147,7 +3147,7 @@ local Window = VoraLib:CreateWindow({
 
 Window:Notify({
     Title = "Vora Hub",
-    Content = "UI Successfully Loaded TESTER!",
+    Content = "UI Successfully Loaded! TESTING YE",
     Duration = 5,
 })
 
@@ -5627,7 +5627,7 @@ function V5_spamLoop()
         V5_PlayFishingAnimationOptimized("reel")
         
         -- Wait (Simulate V2 CompleteDelay but minimal)
-        task.wait(0.000001) 
+        task.wait() 
         
         V5_safeFire(function()
             V5_RE_FishingCompleted:FireServer()
@@ -5636,7 +5636,7 @@ function V5_spamLoop()
         V5_PlayFishingAnimationOptimized("finish")
 
         -- Wait (Simulate V2 CancelDelay)
-        task.wait(0.000001)
+        task.wait()
         
         V5_safeFire(function()
             V5_RF_CancelFishingInputs:InvokeServer()
