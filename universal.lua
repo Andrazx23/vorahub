@@ -1,3 +1,5 @@
+-- GAK PERLU DI OBFUS SOALNYA CUMAN UNIVERSAL
+
 local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
 local UserInputService = game:GetService("UserInputService")
@@ -39,6 +41,11 @@ local State = {
     SolidWorld = false,
     AntiRagdoll = false,
     Bhop = false,
+    FlySpeed = 50,
+    FlingLoop = false,
+    AutoAim = false,
+    AutoAimSmooth = 0.2,
+    AutoAimRange = 300,
 }
 
 local Connections = {}
@@ -235,7 +242,7 @@ local function toggleFly(on)
             if dir.Magnitude > 0 then
                 dir = dir.Unit
             end
-            flyBV.Velocity = dir * math.max(30, State.WalkSpeed)
+            flyBV.Velocity = dir * math.max(20, State.FlySpeed)
             flyBG.CFrame = cam.CFrame
         end))
     end
@@ -382,6 +389,106 @@ local function flingPulse()
     av:Destroy()
 end
 
+local function getNearestTargetPlayer()
+    local myRoot = getRoot()
+    if not myRoot then return nil end
+
+    local nearestPlayer = nil
+    local nearestDistance = math.huge
+    for _, plr in ipairs(Players:GetPlayers()) do
+        if plr ~= LocalPlayer and plr.Character then
+            local targetHum = plr.Character:FindFirstChildOfClass("Humanoid")
+            local targetRoot = plr.Character:FindFirstChild("HumanoidRootPart")
+            if targetHum and targetHum.Health > 0 and targetRoot then
+                local dist = (targetRoot.Position - myRoot.Position).Magnitude
+                if dist < nearestDistance then
+                    nearestDistance = dist
+                    nearestPlayer = plr
+                end
+            end
+        end
+    end
+    return nearestPlayer
+end
+
+local function toggleFlingLoop(on)
+    State.FlingLoop = on
+    clearConn("flingLoop")
+    if not on then return end
+
+    setConn("flingLoop", RunService.Heartbeat:Connect(function()
+        if not State.FlingLoop then return end
+        local myChar = getChar()
+        local myRoot = getRoot()
+        local myHum = getHum()
+        if not myChar or not myRoot or not myHum or myHum.Health <= 0 then return end
+
+        local targetPlayer = getNearestTargetPlayer()
+        if not targetPlayer or not targetPlayer.Character then return end
+        local targetRoot = targetPlayer.Character:FindFirstChild("HumanoidRootPart")
+        if not targetRoot then return end
+
+        myRoot.CFrame = targetRoot.CFrame * CFrame.new(0, 0, 1.5)
+        myRoot.AssemblyLinearVelocity = Vector3.new(0, 0, 0)
+        myRoot.AssemblyAngularVelocity = Vector3.new(0, 280, 0)
+    end))
+end
+
+local function getAutoAimTarget()
+    local cam = Workspace.CurrentCamera
+    local myChar = getChar()
+    if not cam or not myChar then return nil end
+
+    local bestTargetPart = nil
+    local bestScore = math.huge
+
+    for _, plr in ipairs(Players:GetPlayers()) do
+        if plr ~= LocalPlayer and plr.Character then
+            local hum = plr.Character:FindFirstChildOfClass("Humanoid")
+            local root = plr.Character:FindFirstChild("HumanoidRootPart")
+            local head = plr.Character:FindFirstChild("Head")
+            local targetPart = head or root
+            if hum and hum.Health > 0 and targetPart then
+                local dist = (targetPart.Position - cam.CFrame.Position).Magnitude
+                if dist <= State.AutoAimRange then
+                    local onScreen, viewportPos = pcall(function()
+                        return cam:WorldToViewportPoint(targetPart.Position)
+                    end)
+                    if onScreen and viewportPos and viewportPos.Z > 0 then
+                        local screenCenter = Vector2.new(cam.ViewportSize.X * 0.5, cam.ViewportSize.Y * 0.5)
+                        local score = (Vector2.new(viewportPos.X, viewportPos.Y) - screenCenter).Magnitude
+                        if score < bestScore then
+                            bestScore = score
+                            bestTargetPart = targetPart
+                        end
+                    end
+                end
+            end
+        end
+    end
+
+    return bestTargetPart
+end
+
+local function toggleAutoAim(on)
+    State.AutoAim = on
+    clearConn("autoAim")
+    if not on then return end
+
+    setConn("autoAim", RunService.RenderStepped:Connect(function()
+        if not State.AutoAim or State.Freecam then return end
+        local cam = Workspace.CurrentCamera
+        if not cam then return end
+
+        local targetPart = getAutoAimTarget()
+        if not targetPart then return end
+
+        local desired = CFrame.lookAt(cam.CFrame.Position, targetPart.Position)
+        local smooth = math.clamp(State.AutoAimSmooth, 0.01, 1)
+        cam.CFrame = cam.CFrame:Lerp(desired, smooth)
+    end))
+end
+
 local function toggleSpin(on)
     State.Spin = on
     clearConn("spin")
@@ -407,21 +514,28 @@ local function toggleESP(on)
     clearESP()
     if on then
         setConn("esp", RunService.RenderStepped:Connect(function()
+            local aliveMap = {}
             for _, plr in ipairs(Players:GetPlayers()) do
                 if plr ~= LocalPlayer and plr.Character and plr.Character:FindFirstChild("HumanoidRootPart") then
                     local name = "ESP_" .. plr.Name
-                    local box = espFolder:FindFirstChild(name)
-                    if not box then
-                        box = Instance.new("BoxHandleAdornment")
-                        box.Name = name
-                        box.AlwaysOnTop = true
-                        box.ZIndex = 10
-                        box.Size = Vector3.new(4, 6, 2)
-                        box.Transparency = 0.45
-                        box.Color3 = Color3.fromRGB(255, 70, 70)
-                        box.Parent = espFolder
+                    aliveMap[name] = true
+                    local hl = espFolder:FindFirstChild(name)
+                    if not hl then
+                        hl = Instance.new("Highlight")
+                        hl.Name = name
+                        hl.DepthMode = Enum.HighlightDepthMode.AlwaysOnTop
+                        hl.FillColor = Color3.fromRGB(255, 80, 80)
+                        hl.OutlineColor = Color3.fromRGB(255, 160, 160)
+                        hl.FillTransparency = 0.55
+                        hl.OutlineTransparency = 0.05
+                        hl.Parent = espFolder
                     end
-                    box.Adornee = plr.Character.HumanoidRootPart
+                    hl.Adornee = plr.Character
+                end
+            end
+            for _, item in ipairs(espFolder:GetChildren()) do
+                if not aliveMap[item.Name] then
+                    item:Destroy()
                 end
             end
         end))
@@ -429,7 +543,7 @@ local function toggleESP(on)
 end
 
 -- Main tab
-MainTab:CreateSection({ Name = "Universal Utility" })
+MainTab:CreateSection({ Name = "Movement" })
 MainTab:CreateParagraph({
     Title = "Info",
     Desc = "Fly: WASD + Space/Ctrl | Freecam: WASD atau IJKL + Space/Ctrl (Q/E) + Mouse"
@@ -441,15 +555,14 @@ MainTab:CreateToggle({
     Callback = toggleFly
 })
 
-MainTab:CreateToggle({
-    Name = "Freecam",
-    Default = false,
-    Callback = toggleFreecam
-})
-
-MainTab:CreateButton({
-    Name = "Fling (Pulse)",
-    Callback = flingPulse
+MainTab:CreateSlider({
+    Name = "Fly Speed",
+    Min = 20,
+    Max = 300,
+    Default = 50,
+    Callback = function(v)
+        State.FlySpeed = v
+    end
 })
 
 MainTab:CreateToggle({
@@ -468,6 +581,12 @@ MainTab:CreateToggle({
     end
 })
 
+MainTab:CreateToggle({
+    Name = "Freecam",
+    Default = false,
+    Callback = toggleFreecam
+})
+
 MainTab:CreateInput({
     Name = "Camera FOV",
     SideLabel = "Default 70",
@@ -482,13 +601,104 @@ MainTab:CreateInput({
     end
 })
 
+MainTab:CreateSection({ Name = "Combat Assist" })
+MainTab:CreateParagraph({
+    Title = "Combat Notes",
+    Desc = "Auto Aim target terdekat dari tengah layar. Auto Fling akan loop ke target player terdekat."
+})
+MainTab:CreateToggle({
+    Name = "Auto Aim",
+    Default = false,
+    Callback = toggleAutoAim
+})
+
+MainTab:CreateSlider({
+    Name = "Auto Aim Smooth",
+    Min = 1,
+    Max = 100,
+    Default = 20,
+    Callback = function(v)
+        State.AutoAimSmooth = v / 100
+    end
+})
+
+MainTab:CreateSlider({
+    Name = "Auto Aim Range",
+    Min = 50,
+    Max = 1000,
+    Default = 300,
+    Callback = function(v)
+        State.AutoAimRange = v
+    end
+})
+
+MainTab:CreateToggle({
+    Name = "Auto Fling (Loop)",
+    Default = false,
+    Callback = toggleFlingLoop
+})
+
+MainTab:CreateButton({
+    Name = "Fling (Pulse)",
+    Callback = flingPulse
+})
+
+MainTab:CreateSection({ Name = "Keybind" })
+MainTab:CreateParagraph({
+    Title = "Shortcut",
+    Desc = "Atur hotkey untuk toggle cepat tanpa buka menu."
+})
+MainTab:CreateKeybind({
+    Name = "Toggle Fly",
+    Default = Enum.KeyCode.F,
+    Callback = function()
+        toggleFly(not State.Fly)
+    end
+})
+
+MainTab:CreateKeybind({
+    Name = "Toggle Auto Aim",
+    Default = Enum.KeyCode.H,
+    Callback = function()
+        toggleAutoAim(not State.AutoAim)
+    end
+})
+
+MainTab:CreateKeybind({
+    Name = "Toggle Auto Fling",
+    Default = Enum.KeyCode.G,
+    Callback = function()
+        toggleFlingLoop(not State.FlingLoop)
+    end
+})
+
 -- Player tab
-PlayerTab:CreateSection({ Name = "Character" })
+PlayerTab:CreateSection({ Name = "Character Utility" })
+PlayerTab:CreateParagraph({
+    Title = "Character Notes",
+    Desc = "Fitur utility untuk pergerakan dan status karakter."
+})
 
 PlayerTab:CreateToggle({
     Name = "Noclip",
     Default = false,
     Callback = toggleNoclip
+})
+
+PlayerTab:CreateKeybind({
+    Name = "Keybind Toggle Noclip",
+    Default = Enum.KeyCode.N,
+    Callback = function()
+        toggleNoclip(not State.Noclip)
+    end
+})
+
+PlayerTab:CreateToggle({
+    Name = "Infinite Jump",
+    Default = false,
+    Callback = function(v)
+        State.InfiniteJump = v
+    end
 })
 
 PlayerTab:CreateToggle({
@@ -504,14 +714,6 @@ PlayerTab:CreateToggle({
 })
 
 PlayerTab:CreateToggle({
-    Name = "Infinite Jump",
-    Default = false,
-    Callback = function(v)
-        State.InfiniteJump = v
-    end
-})
-
-PlayerTab:CreateToggle({
     Name = "Anti Ragdoll",
     Default = false,
     Callback = function(v)
@@ -519,10 +721,20 @@ PlayerTab:CreateToggle({
     end
 })
 
-PlayerTab:CreateToggle({
-    Name = "Spin",
-    Default = false,
-    Callback = toggleSpin
+PlayerTab:CreateSection({ Name = "Character Stats" })
+PlayerTab:CreateParagraph({
+    Title = "Stats Notes",
+    Desc = "Gunakan slider untuk set cepat, input untuk angka spesifik."
+})
+
+PlayerTab:CreateSlider({
+    Name = "WalkSpeed Slider",
+    Min = 1,
+    Max = 300,
+    Default = 16,
+    Callback = function(v)
+        applyWalkSpeed(v)
+    end
 })
 
 PlayerTab:CreateInput({
@@ -547,6 +759,12 @@ PlayerTab:CreateInput({
     end
 })
 
+PlayerTab:CreateToggle({
+    Name = "Spin",
+    Default = false,
+    Callback = toggleSpin
+})
+
 PlayerTab:CreateInput({
     Name = "Spin Speed",
     SideLabel = "Default 45",
@@ -560,6 +778,11 @@ PlayerTab:CreateInput({
     end
 })
 
+PlayerTab:CreateSection({ Name = "Character Action" })
+PlayerTab:CreateParagraph({
+    Title = "Action",
+    Desc = "Reset karakter jika stuck atau bug posisi."
+})
 PlayerTab:CreateButton({
     Name = "Reset Character",
     Callback = function()
@@ -570,6 +793,10 @@ PlayerTab:CreateButton({
 
 -- Teleport tab
 TeleportTab:CreateSection({ Name = "Teleport" })
+TeleportTab:CreateParagraph({
+    Title = "Teleport Notes",
+    Desc = "Bisa teleport ke koordinat atau ke player. Gunakan refresh jika list player berubah."
+})
 
 local tpCoordsText = ""
 TeleportTab:CreateInput({
@@ -707,6 +934,10 @@ TeleportTab:CreateButton({
 
 -- Misc tab
 MiscTab:CreateSection({ Name = "Visual" })
+MiscTab:CreateParagraph({
+    Title = "Visual Notes",
+    Desc = "ESP memakai highlight karakter, FullBright untuk map gelap, Solid World mencegah nembus model."
+})
 MiscTab:CreateToggle({
     Name = "FullBright",
     Default = false,
@@ -724,6 +955,10 @@ MiscTab:CreateToggle({
 })
 
 MiscTab:CreateSection({ Name = "Server" })
+MiscTab:CreateParagraph({
+    Title = "Server Notes",
+    Desc = "Anti AFK untuk idle kick. Rejoin/Server Hop untuk pindah instance."
+})
 MiscTab:CreateToggle({
     Name = "Anti AFK",
     Default = false,
@@ -766,6 +1001,8 @@ MiscTab:CreateButton({
         toggleFreeze(false)
         toggleInvisible(false)
         toggleSpin(false)
+        toggleFlingLoop(false)
+        toggleAutoAim(false)
         toggleESP(false)
         toggleFullBright(false)
         toggleSolidWorld(false)
